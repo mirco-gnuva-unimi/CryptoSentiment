@@ -1,4 +1,3 @@
-import textblob
 import tweepy
 from loguru import logger
 import sys
