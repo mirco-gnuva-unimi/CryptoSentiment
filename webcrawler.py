@@ -22,6 +22,17 @@ config = ConfigParser()
 config.read(API_FILE)
 
 
+class Tweet:
+	def __init__(self, raw_tweet):
+		self.id = raw_tweet.id
+		self.text = raw_tweet.text
+		self.lang = raw_tweet.lang
+		self.datetime = raw_tweet.created_at
+		self.datetime_str = self.datetime.strftime(DATETIME_FORMAT)
+		self.query_values = self.id, self.text, self.datetime_str
+		self.is_en = self.lang == 'en'
+
+
 @logger.catch
 def get_db_connection(db_file: str) -> sqlite3.Connection:
 	connection = sqlite3.connect(db_file)
@@ -48,9 +59,18 @@ def read_hashtags(hashtags_file: str) -> list:
 
 
 @logger.catch
-def parse_tweet(tweet) -> dict:
-	descriptor = {'id': tweet.id, 'text': tweet.text, 'lang': tweet.lang, 'datetime': tweet.created_at}
-	return descriptor
+def parse_tweets(tweets):
+	new_tweets = 0
+	for raw_tweet in tqdm(tweets, desc='Parsing tweets', total=tweets_for_hashtag-1):
+		tweet = Tweet(raw_tweet)
+		if tweet.is_en:
+			query = f'INSERT INTO tweet VALUES (?, ?, ?)'
+			try:
+				db_connection.execute(query, tweet.query_values)
+				new_tweets += 1
+			except sqlite3.IntegrityError:
+				pass
+	return new_tweets
 
 
 hashtags = read_hashtags(HASHTAGS_FILE)
@@ -62,21 +82,13 @@ del config
 db_connection = get_db_connection(OUTPUT_FILE)
 
 tweets_for_hashtag = int(MAX_TWEETS / len(hashtags))
-new_tweets = 0
+total_new_tweets = 0
 for hashtag in hashtags:
 	tweets = tweepy.Cursor(api_client.search, q=hashtag).items(tweets_for_hashtag)
-	for tweet in tqdm(tweets, desc='Parsing tweets'):
-		tweet_desc = parse_tweet(tweet)
-		if tweet_desc['lang'] == 'en':
-			query = f'INSERT INTO tweet VALUES (?, ?, ?)'
-			try:
-				db_connection.execute(query, (tweet_desc["id"], tweet_desc["text"], tweet_desc["datetime"].strftime(DATETIME_FORMAT)))
-				new_tweets += 1
-			except sqlite3.IntegrityError:
-				pass
+	total_new_tweets += parse_tweets(tweets)
 	db_connection.commit()
 
-logger.info(f'{new_tweets} new tweets')
+logger.info(f'{total_new_tweets} new tweets')
 
 
 
