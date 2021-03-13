@@ -18,13 +18,13 @@ logger.add(sys.stdout, format=LOGGER_FORMAT, level=LOGGER_LEVEL)
 client = cbpro.PublicClient()
 SUPPORTED_CURRENCIES = [currency['id'] for currency in client.get_currencies() if currency['details']['type'] == 'crypto']
 DATA_HEADER = ['currency', 'time', 'low', 'high', 'open', 'close', 'volume']
-DATA_GRANULARITY_OPTIONS = {'1m': 60,
+DATA_GRANULARITY_MAPPING = {'1m': 60,
 							'5m': 300,
 							'15m': 900,
 							'1h': 3600,
 							'6h': 21600,
 							'1d': 86400}
-DATA_GRANULARITY = DATA_GRANULARITY_OPTIONS['1d']
+DATA_GRANULARITY = DATA_GRANULARITY_MAPPING['1d']
 SINCE = '2021-01-1 0:0:0'
 
 
