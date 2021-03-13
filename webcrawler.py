@@ -93,7 +93,10 @@ tweets_for_hashtag = int(MAX_TWEETS / len(hashtags))
 total_new_tweets = 0
 for hashtag in hashtags:
 	tweets = tweepy.Cursor(api_client.search, q=hashtag).items(tweets_for_hashtag)
-	total_new_tweets += parse_tweets(tweets)
-	db_connection.commit()
+	try:
+		total_new_tweets += parse_tweets(tweets)
+		db_connection.commit()
+	except KeyboardInterrupt:  # using 'except' instead of 'finally' to raise all other exceptions
+		db_connection.commit()
 
 logger.info(f'{total_new_tweets} new tweets')
