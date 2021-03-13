@@ -2,6 +2,7 @@ from loguru import logger
 import cbpro
 import sys
 from datetime import datetime, timedelta
+import sqlite3
 
 
 CURRENCIES_FILE = 'cryptocurrencies.txt'
@@ -9,6 +10,7 @@ DB_FILE = 'currencies_rates.db'
 
 LOGGER_FORMAT = '<green>{time: YYYY-MM-DD HH:mm:ss.SSS}</green> <level>{level} | {message}</level>'
 LOGGER_LEVEL = "DEBUG"
+TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 logger.remove()
 logger.add(sys.stdout, format=LOGGER_FORMAT, level=LOGGER_LEVEL)
@@ -34,10 +36,11 @@ def read_cryptocurrencies(file_path: str) -> list:
 	return cryptocurrencies
 
 
+# TODO: refactoring
 @logger.catch
 def get_historic_data(currency: str) -> list:
 	max_timedelta = timedelta(seconds=300 * DATA_GRANULARITY)
-	latest_end = datetime.strptime(SINCE, '%Y-%m-%d %H:%M:%S')
+	latest_end = datetime.strptime(SINCE, TIME_FORMAT)
 	now = datetime.now()
 	result = []
 	pair = f'{currency}-USD'
@@ -46,12 +49,19 @@ def get_historic_data(currency: str) -> list:
 		start = latest_end + timedelta(seconds=1)
 		end = min(start + max_timedelta, now)
 		logger.debug(f'Getting data from {start} to {end}')
-		data = client.get_product_historic_rates(pair, start, end, DATA_GRANULARITY)
+		api_data = client.get_product_historic_rates(pair, start, end, DATA_GRANULARITY)
+		data = [[currency, datetime.fromtimestamp(raw_data[0]).strftime(TIME_FORMAT)] + raw_data[1:] for raw_data in api_data]
 		logger.debug(f'{len(data)} entries retrieved')
 		result.extend(data)
 		latest_end = end
 	logger.debug(f'{len(result)} data pulled.')
 	return result
+
+
+@logger.catch
+def get_db_connection(db_file: str) -> sqlite3.Connection:
+	connection = sqlite3.connect(db_file)
+	return connection
 
 
 currencies = read_cryptocurrencies(CURRENCIES_FILE)
@@ -64,3 +74,17 @@ if not_supported_currencies:
 
 logger.info(f'Will be crawled information about {len(currencies)} currencies')
 
+db_connection = get_db_connection(DB_FILE)
+query = 'INSERT INTO currency_rate values (?,?,?,?,?,?,?)'
+
+try:
+	for currency in currencies:
+		data = get_historic_data(currency)
+		for entry in data:
+			try:
+				db_connection.execute(query, entry)
+			except sqlite3.IntegrityError:
+				logger.warning(f'{currency}({entry[1]}) already in database')
+	db_connection.commit()
+except KeyboardInterrupt:
+	db_connection.commit()
