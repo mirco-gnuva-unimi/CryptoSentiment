@@ -81,6 +81,7 @@ logger.info(f'Will be crawled information about {len(currencies)} currencies')
 
 db_connection = get_db_connection(DB_FILE)
 query = 'INSERT INTO currency_rate values (?,?,?,?,?,?,?)'
+new_entries = 0
 
 try:
 	for currency in currencies:
@@ -88,8 +89,11 @@ try:
 		for entry in data:
 			try:
 				db_connection.execute(query, entry)
+				new_entries += 1
 			except sqlite3.IntegrityError:
 				logger.warning(f'{currency}({entry[1]}) already in database')
 	db_connection.commit()
 except KeyboardInterrupt:
 	db_connection.commit()
+
+logger.info(f'{new_entries} new database entries')
