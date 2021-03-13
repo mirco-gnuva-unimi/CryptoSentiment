@@ -3,6 +3,7 @@ import cbpro
 import sys
 from datetime import datetime, timedelta
 import sqlite3
+from math import ceil
 
 
 CURRENCIES_FILE = 'cryptocurrencies.txt'
@@ -36,24 +37,28 @@ def read_cryptocurrencies(file_path: str) -> list:
 	return cryptocurrencies
 
 
-# TODO: refactoring
 @logger.catch
 def get_historic_data(currency: str) -> list:
-	max_timedelta = timedelta(seconds=300 * DATA_GRANULARITY)
-	latest_end = datetime.strptime(SINCE, TIME_FORMAT)
 	now = datetime.now()
+	max_timedelta = timedelta(seconds=300 * DATA_GRANULARITY)
+	since = datetime.strptime(SINCE, TIME_FORMAT)
+	time_frames = ceil((now - since) / max_timedelta)
+	since -= timedelta(seconds=1)
+	time_frames_list = [(since + i * max_timedelta + timedelta(seconds=1), min(since + (i+1)*max_timedelta, now))
+						for i in range(time_frames)]
+
 	result = []
 	pair = f'{currency}-USD'
-	logger.debug(f'Pulling data about pair "{pair}" since {latest_end}...')
-	while latest_end < now:
-		start = latest_end + timedelta(seconds=1)
-		end = min(start + max_timedelta, now)
+	logger.debug(f'Pulling data about pair "{pair}" since {since}...')
+
+	for time_frame in time_frames_list:
+		start = time_frame[0]
+		end = time_frame[1]
 		logger.debug(f'Getting data from {start} to {end}')
 		api_data = client.get_product_historic_rates(pair, start, end, DATA_GRANULARITY)
 		data = [[currency, datetime.fromtimestamp(raw_data[0]).strftime(TIME_FORMAT)] + raw_data[1:] for raw_data in api_data]
 		logger.debug(f'{len(data)} entries retrieved')
 		result.extend(data)
-		latest_end = end
 	logger.debug(f'{len(result)} data pulled.')
 	return result
 
