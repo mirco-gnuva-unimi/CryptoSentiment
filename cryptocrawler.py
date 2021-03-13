@@ -69,31 +69,32 @@ def get_db_connection(db_file: str) -> sqlite3.Connection:
 	return connection
 
 
-currencies = read_cryptocurrencies(CURRENCIES_FILE)
+if __name__ == '__main__':
+	currencies = read_cryptocurrencies(CURRENCIES_FILE)
 
-not_supported_currencies = [cur for cur in currencies if cur not in SUPPORTED_CURRENCIES]
+	not_supported_currencies = [cur for cur in currencies if cur not in SUPPORTED_CURRENCIES]
 
-if not_supported_currencies:
-	logger.error(f'Detected currencies not supported by coinbase: {not_supported_currencies}')
-	exit(1)
+	if not_supported_currencies:
+		logger.error(f'Detected currencies not supported by coinbase: {not_supported_currencies}')
+		exit(1)
 
-logger.info(f'Will be crawled information about {len(currencies)} currencies')
+	logger.info(f'Will be crawled information about {len(currencies)} currencies')
 
-db_connection = get_db_connection(DB_FILE)
-query = 'INSERT INTO currency_rate values (?,?,?,?,?,?,?)'
-new_entries = 0
+	db_connection = get_db_connection(DB_FILE)
+	query = 'INSERT INTO currency_rate values (?,?,?,?,?,?,?)'
+	new_entries = 0
 
-try:
-	for currency in currencies:
-		data = get_historic_data(currency)
-		for entry in data:
-			try:
-				db_connection.execute(query, entry)
-				new_entries += 1
-			except sqlite3.IntegrityError:
-				logger.warning(f'{currency}({entry[1]}) already in database')
-	db_connection.commit()
-except KeyboardInterrupt:
-	db_connection.commit()
+	try:
+		for currency in currencies:
+			data = get_historic_data(currency)
+			for entry in data:
+				try:
+					db_connection.execute(query, entry)
+					new_entries += 1
+				except sqlite3.IntegrityError:
+					logger.warning(f'{currency}({entry[1]}) already in database')
+		db_connection.commit()
+	except KeyboardInterrupt:
+		db_connection.commit()
 
-logger.info(f'{new_entries} new database entries')
+	logger.info(f'{new_entries} new database entries')

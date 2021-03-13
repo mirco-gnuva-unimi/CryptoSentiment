@@ -4,12 +4,19 @@ import sys
 from configparser import ConfigParser
 import sqlite3
 from tqdm import tqdm
+from time import sleep
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+import nltk
+import re
+
+nltk.download('stopwords')
 
 HASHTAGS_FILE = 'hashtags.txt'
 OUTPUT_FILE = 'tweets.db'
 API_FILE = 'twitter_api.ini'
 
-MAX_TWEETS = 500 * 1000
+MAX_TWEETS = 100
 
 LOGGER_FORMAT = '<green>{time: YYYY-MM-DD HH:mm:ss.SSS}</green> <level>{level} | {message}</level>'
 LOGGER_LEVEL = "DEBUG"
@@ -21,11 +28,23 @@ logger.add(sys.stdout, format=LOGGER_FORMAT, level=LOGGER_LEVEL)
 config = ConfigParser()
 config.read(API_FILE)
 
+stop_words = stopwords.words('english')
+stemmer = PorterStemmer()
+
 
 class Tweet:
 	def __init__(self, raw_tweet):
 		self.id = raw_tweet.id
-		self.text = raw_tweet.text
+		text = raw_tweet.text.lower()
+		words = text.split(' ')
+		words = filter(lambda word: '@' not in word, words)
+		words = [stemmer.stem(word) for word in words if words not in stop_words]
+		text = ' '.join(words)
+		text = re.sub('http:\/\/[a-z]*', '', text)
+		text = re.sub('https:\/\/[a-z]*', '', text)
+		text = re.sub('[^a-z]', ' ', text)
+		text = re.sub('\s+', ' ', text)
+		self.text = text
 		self.lang = raw_tweet.lang
 		self.datetime = raw_tweet.created_at
 		self.contributors = raw_tweet.contributors
@@ -37,8 +56,11 @@ class Tweet:
 		self.platform = raw_tweet.source
 		self.author = raw_tweet.user
 		self.datetime_str = self.datetime.strftime(DATETIME_FORMAT)
-		self.query_values = self.id, self.text, self.datetime_str
 		self.is_en = self.lang == 'en'
+
+	@property
+	def query_values(self):
+		return self.id, self.text, self.datetime_str
 
 
 @logger.catch
@@ -67,9 +89,9 @@ def read_hashtags(hashtags_file: str) -> list:
 
 
 @logger.catch
-def parse_tweets(tweets):
+def parse_tweets(tweets: list):
 	new_tweets = 0
-	for raw_tweet in tqdm(tweets, desc='Parsing tweets', total=tweets_for_hashtag-1):
+	for raw_tweet in tqdm(tweets, desc='Parsing tweets'):
 		tweet = Tweet(raw_tweet)
 		if tweet.is_en:
 			query = f'INSERT INTO tweet VALUES (?, ?, ?)'
@@ -81,22 +103,45 @@ def parse_tweets(tweets):
 	return new_tweets
 
 
-hashtags = read_hashtags(HASHTAGS_FILE)
-logger.info(f'Hashtags: {len(hashtags)}')
-
-api_client = get_api_client(config)
-del config
-
-db_connection = get_db_connection(OUTPUT_FILE)
-
-tweets_for_hashtag = int(MAX_TWEETS / len(hashtags))
-total_new_tweets = 0
-for hashtag in hashtags:
-	tweets = tweepy.Cursor(api_client.search, q=hashtag).items(tweets_for_hashtag)
+@logger.catch
+def get_tweets(hashtag: str, limit: int) -> list:
 	try:
-		total_new_tweets += parse_tweets(tweets)
-		db_connection.commit()
-	except KeyboardInterrupt:  # using 'except' instead of 'finally' to raise all other exceptions
-		db_connection.commit()
+		tweets = []
+		# Worst performances but better readability
+		with tqdm(total=limit, desc='Getting tweets') as bar:
+			for idx, tweet in enumerate(tweepy.Cursor(api_client.search, q=hashtag).items(limit)):
+				tweets.append(tweet)
+				bar.update()
+		return tweets
+	except tweepy.error.TweepError:
+		logger.warning(f"API's rate limit reached, waiting 15 minutes...")
+		for _ in tqdm(range(60 * 15), desc='Waiting...'):
+			sleep(1)
+		try:
+			return tweets + get_tweets(hashtag, limit - idx)
+		except UnboundLocalError:
+			return tweets + get_tweets(hashtag, limit)
+	except KeyboardInterrupt:
+		return tweets
 
-logger.info(f'{total_new_tweets} new tweets')
+
+if __name__ == '__main__':
+	hashtags = read_hashtags(HASHTAGS_FILE)
+	logger.info(f'Hashtags: {len(hashtags)}')
+
+	api_client = get_api_client(config)
+	del config
+
+	db_connection = get_db_connection(OUTPUT_FILE)
+
+	tweets_for_hashtag = int(MAX_TWEETS / len(hashtags))
+	total_new_tweets = 0
+	for hashtag in hashtags:
+		tweets = get_tweets(hashtag, tweets_for_hashtag)
+		try:
+			total_new_tweets += parse_tweets(tweets)
+			db_connection.commit()
+		except KeyboardInterrupt:  # using 'except' instead of 'finally' to raise all other exceptions
+			db_connection.commit()
+
+	logger.info(f'{total_new_tweets} new tweets')
