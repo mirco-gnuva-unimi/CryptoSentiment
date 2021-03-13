@@ -28,6 +28,14 @@ class Tweet:
 		self.text = raw_tweet.text
 		self.lang = raw_tweet.lang
 		self.datetime = raw_tweet.created_at
+		self.contributors = raw_tweet.contributors
+		self.coordinates = raw_tweet.coordinates
+		self.geo = raw_tweet.geo
+		self.in_reply_to_id = raw_tweet.in_reply_to_user_id
+		self.place = raw_tweet.place
+		self.retweeted = raw_tweet.retweeted
+		self.platform = raw_tweet.source
+		self.author = raw_tweet.user
 		self.datetime_str = self.datetime.strftime(DATETIME_FORMAT)
 		self.query_values = self.id, self.text, self.datetime_str
 		self.is_en = self.lang == 'en'
@@ -89,9 +97,3 @@ for hashtag in hashtags:
 	db_connection.commit()
 
 logger.info(f'{total_new_tweets} new tweets')
-
-
-
-
-
-
