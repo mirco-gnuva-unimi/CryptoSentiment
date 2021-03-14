@@ -66,10 +66,11 @@ class Tweet:
 		self.retweets = raw_tweet.retweet_count
 		self.datetime_str = self.datetime.strftime(DATETIME_FORMAT)
 		self.is_en = self.lang == 'en'
+		self.hashtags = ','.join([hashtag['text'] for hashtag in raw_tweet.entities['hashtags']])
 
 	@property
 	def query_values(self):
-		return self.id, self.text, self.datetime_str, self.raw_text, self.author, self.retweets
+		return self.id, self.text, self.datetime_str, self.raw_text, self.author, self.retweets, self.hashtags
 
 
 @logger.catch
@@ -103,7 +104,7 @@ def parse_tweets(tweets: list):
 	for raw_tweet in tqdm(tweets, desc='Parsing tweets'):
 		tweet = Tweet(raw_tweet)
 		if tweet.is_en:
-			query = f'INSERT INTO tweet VALUES (?, ?, ?, ?, ?, ?)'
+			query = f'INSERT INTO tweet VALUES (?, ?, ?, ?, ?, ?, ?)'
 			try:
 				db_connection.execute(query, tweet.query_values)
 				new_tweets += 1
