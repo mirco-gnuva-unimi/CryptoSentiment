@@ -4,6 +4,7 @@ import sys
 from datetime import datetime, timedelta
 import sqlite3
 from math import ceil
+from time import sleep
 
 
 CURRENCIES_FILE = 'cryptocurrencies.txt'
@@ -59,6 +60,7 @@ def get_historic_data(currency: str) -> list:
 		data = [[currency, datetime.fromtimestamp(raw_data[0]).strftime(TIME_FORMAT)] + raw_data[1:] for raw_data in api_data]
 		logger.debug(f'{len(data)} entries retrieved')
 		result.extend(data)
+		sleep(5)
 	logger.debug(f'{len(result)} data pulled.')
 	return result
 

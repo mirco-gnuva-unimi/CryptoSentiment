@@ -10,6 +10,11 @@ from nltk.stem import PorterStemmer
 import nltk
 import re
 
+if len(sys.argv) > 1:
+	LOOP_MODE = True
+else:
+	LOOP_MODE = False
+
 nltk.download('stopwords')
 
 HASHTAGS_FILE = 'hashtags.txt'
@@ -36,6 +41,8 @@ class Tweet:
 	def __init__(self, raw_tweet):
 		self.id = raw_tweet.id
 		text = raw_tweet.text.lower()
+		logger.debug(f'Raw text: "{text}"')
+		self.raw_text = text
 		words = text.split(' ')
 		words = filter(lambda word: '@' not in word, words)
 		words = [stemmer.stem(word) for word in words if words not in stop_words]
@@ -44,6 +51,7 @@ class Tweet:
 		text = re.sub('https:\/\/[a-z]*', '', text)
 		text = re.sub('[^a-z]', ' ', text)
 		text = re.sub('\s+', ' ', text)
+		logger.debug(f'Parsed text: "{text}"')
 		self.text = text
 		self.lang = raw_tweet.lang
 		self.datetime = raw_tweet.created_at
@@ -60,7 +68,7 @@ class Tweet:
 
 	@property
 	def query_values(self):
-		return self.id, self.text, self.datetime_str
+		return self.id, self.text, self.datetime_str, self.raw_text
 
 
 @logger.catch
@@ -73,7 +81,7 @@ def get_db_connection(db_file: str) -> sqlite3.Connection:
 def get_api_client(config: ConfigParser) -> tweepy.API:
 	auth = tweepy.OAuthHandler(config['CONSUMER']['key'], config['CONSUMER']['secret'])
 	auth.set_access_token(config['ACCESS']['token'], config['ACCESS']['secret'])
-	api = tweepy.API(auth)
+	api = tweepy.API(auth, wait_on_rate_limit=True)
 	return api
 
 
@@ -94,7 +102,7 @@ def parse_tweets(tweets: list):
 	for raw_tweet in tqdm(tweets, desc='Parsing tweets'):
 		tweet = Tweet(raw_tweet)
 		if tweet.is_en:
-			query = f'INSERT INTO tweet VALUES (?, ?, ?)'
+			query = f'INSERT INTO tweet VALUES (?, ?, ?, ?)'
 			try:
 				db_connection.execute(query, tweet.query_values)
 				new_tweets += 1
@@ -113,8 +121,8 @@ def get_tweets(hashtag: str, limit: int) -> list:
 				tweets.append(tweet)
 				bar.update()
 		return tweets
-	except tweepy.error.TweepError:
-		logger.warning(f"API's rate limit reached, waiting 15 minutes...")
+	except tweepy.error.TweepError as e:
+		logger.warning(f"API's rate limit reached, waiting 15 minutes ({e})")
 		for _ in tqdm(range(60 * 15), desc='Waiting...'):
 			sleep(1)
 		try:
@@ -134,8 +142,22 @@ if __name__ == '__main__':
 
 	db_connection = get_db_connection(OUTPUT_FILE)
 
-	tweets_for_hashtag = int(MAX_TWEETS / len(hashtags))
 	total_new_tweets = 0
+	while LOOP_MODE:
+		try:
+			for hashtag in hashtags:
+				tweets = get_tweets(hashtag, 100)
+				try:
+					total_new_tweets += parse_tweets(tweets)
+					db_connection.commit()
+				except KeyboardInterrupt:  # using 'except' instead of 'finally' to raise all other exceptions
+					db_connection.commit()
+					exit()
+		except KeyboardInterrupt:
+			db_connection.commit()
+			exit()
+
+	tweets_for_hashtag = int(MAX_TWEETS / len(hashtags))
 	for hashtag in hashtags:
 		tweets = get_tweets(hashtag, tweets_for_hashtag)
 		try:
