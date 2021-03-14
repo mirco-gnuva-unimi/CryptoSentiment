@@ -31,7 +31,7 @@ db_connection = get_db_connection(DB_FILE)
 
 df = pd.read_sql('SELECT * FROM tweet', db_connection)
 
-texts = df['raw_text'][380:]
+texts = df['text'][380:]
 
 counters = [0, 0, 0]
 
@@ -41,7 +41,7 @@ for text in tqdm(texts):
 	score = SentimentIntensityAnalyzer().polarity_scores(text)
 	polarity = analysis.sentiment.polarity
 	#print(score)
-	print(analysis.sentiment.polarity)
+	# print(analysis.sentiment.polarity)
 	#counters[np.argmax(list(score.values())[:-1])] += 1
 
 	if polarity < -(2/6):
