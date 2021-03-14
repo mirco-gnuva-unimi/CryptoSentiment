@@ -41,7 +41,7 @@ class Tweet:
 	def __init__(self, raw_tweet):
 		self.id = raw_tweet.id
 		text = raw_tweet.text.lower()
-		logger.debug(f'Raw text: "{text}"')
+		# logger.debug(f'Raw text: "{text}"')
 		self.raw_text = text
 		words = text.split(' ')
 		words = filter(lambda word: '@' not in word, words)
@@ -51,7 +51,7 @@ class Tweet:
 		text = re.sub('https:\/\/[a-z]*', '', text)
 		text = re.sub('[^a-z]', ' ', text)
 		text = re.sub('\s+', ' ', text)
-		logger.debug(f'Parsed text: "{text}"')
+		# logger.debug(f'Parsed text: "{text}"')
 		self.text = text
 		self.lang = raw_tweet.lang
 		self.datetime = raw_tweet.created_at
@@ -62,13 +62,14 @@ class Tweet:
 		self.place = raw_tweet.place
 		self.retweeted = raw_tweet.retweeted
 		self.platform = raw_tweet.source
-		self.author = raw_tweet.user
+		self.author = raw_tweet.user.id
+		self.retweets = raw_tweet.retweet_count
 		self.datetime_str = self.datetime.strftime(DATETIME_FORMAT)
 		self.is_en = self.lang == 'en'
 
 	@property
 	def query_values(self):
-		return self.id, self.text, self.datetime_str, self.raw_text
+		return self.id, self.text, self.datetime_str, self.raw_text, self.author, self.retweets
 
 
 @logger.catch
@@ -102,7 +103,7 @@ def parse_tweets(tweets: list):
 	for raw_tweet in tqdm(tweets, desc='Parsing tweets'):
 		tweet = Tweet(raw_tweet)
 		if tweet.is_en:
-			query = f'INSERT INTO tweet VALUES (?, ?, ?, ?)'
+			query = f'INSERT INTO tweet VALUES (?, ?, ?, ?, ?, ?)'
 			try:
 				db_connection.execute(query, tweet.query_values)
 				new_tweets += 1
