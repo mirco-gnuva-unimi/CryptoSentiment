@@ -14,3 +14,7 @@ daily_example: https://data.world/mercal/btc-tweets-sentiment
 twitter_emotion: https://www.kaggle.com/huseinzol05/twitter-emotion-cryptocurrency
 twitter2: https://www.kaggle.com/gwhittington/twitter2
 BitcoinTweets: https://www.kaggle.com/augiedoebling/bitcoin-tweets?select=BitcoinTweets.csv
+bitcoin-twitter: https://www.kaggle.com/gwhittington/bitcointwitter?select=bitcoin-twitter.csv
+bitcoin: https://www.kaggle.com/liurui/tweets-about-bitcoin?select=bitcoin.csv
+twits_BTC: https://www.kaggle.com/mohammedlaidtadjine/9000-tweets-about-bitcoin-910-dec-20220
+BTC_tweets_daily_example: https://data.world/mercal/btc-tweets-sentiment

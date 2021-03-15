@@ -18,8 +18,8 @@ else:
 nltk.download('stopwords')
 
 HASHTAGS_FILE = 'hashtags.txt'
-OUTPUT_FILE = 'tweets.db'
-API_FILE = 'twitter_api.ini'
+OUTPUT_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/tweets.db'
+API_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/twitter_api.ini'
 
 MAX_TWEETS = 100
 

@@ -1,11 +1,20 @@
 import csv
 from tqdm import tqdm
 
-INPUT_FILE = './datasets/raw/Bitcoin_tweets.csv'
-OUTPUT_FILE = './datasets/filtered/bitcoin_tweets.csv'
-HEADER = ['username', 'user_location', 'user_desc', 'account_creation', 'followers', 'friends', 'user_favourites', 'user_verified', 'datetime', 'text', 'hashtags', 'source', 'is_retweet']
-INPUT_DELIMITER = ';'
+INPUT_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/twitter2_filtered.csv'
+OUTPUT_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/twitter2_filtered_1.csv'
+HEADER = ['label', 'datetime', 'username', 'full_name', 'text', 'id', 'source', 'followers', 'follows', 'retweets', 'favorites', 'verified', 'user_created', 'location', 'bio', 'profile_img', 'google_map']
+INPUT_DELIMITER = ','
 OUTPUT_DELIMITER = ','
+
+
+def print_first_lines():
+	with open(INPUT_FILE) as file:
+		reader = csv.reader(file)
+		for idx, l in enumerate(reader):
+			print(l)
+			if idx >= 4:
+				exit()
 
 
 def lines_count(filepath: str) -> int:
@@ -23,11 +32,14 @@ def valid_line(line: list) -> bool:
 	return len(line) == len(HEADER)
 
 
+# print_first_lines()
+
 lines = lines_count(INPUT_FILE)
 wrote_lines = 0
 
 with open(OUTPUT_FILE, 'w') as output_file:
 	writer = csv.writer(output_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+	writer.writerow(HEADER)
 	with open(INPUT_FILE, 'r') as input_file:
 		reader = csv.reader(input_file)
 		for line in tqdm(reader, total=lines, desc="Parsing lines"):
