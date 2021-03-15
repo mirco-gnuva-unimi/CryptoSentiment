@@ -1,9 +1,9 @@
 import csv
 from tqdm import tqdm
 
-INPUT_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/twitter2_filtered.csv'
-OUTPUT_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/twitter2_filtered_1.csv'
-HEADER = ['label', 'datetime', 'username', 'full_name', 'text', 'id', 'source', 'followers', 'follows', 'retweets', 'favorites', 'verified', 'user_created', 'location', 'bio', 'profile_img', 'google_map']
+INPUT_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/merged.csv'
+OUTPUT_FILE = '/mnt/hgfs/VMs_Shared/datasets/filtered/BTC_tweets_daily_example_filtered.csv_1.csv'
+HEADER = ['table_id', 'datetime', 'text', 'username', 'source', 'link', 'sent', 'sent_score', 'new_sent_score', 'new_sent']
 INPUT_DELIMITER = ','
 OUTPUT_DELIMITER = ','
 
@@ -32,7 +32,7 @@ def valid_line(line: list) -> bool:
 	return len(line) == len(HEADER)
 
 
-# print_first_lines()
+print_first_lines()
 
 lines = lines_count(INPUT_FILE)
 wrote_lines = 0
