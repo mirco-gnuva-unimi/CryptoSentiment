@@ -1,4 +1,4 @@
-df_Final: daily info					'datetime', 'compound', 'tweets_count', 'tweets_neg', 'tweets_pos', 'tweets_neu', 'neg_avg', 'pos_avg', 'links_count', 'bots_count', 'open', 'high', 'low', 'close', 'btc_volume', 'curr_volume'
+df_Final: hour info					'datetime', 'compound', 'tweets_count', 'tweets_neg', 'tweets_pos', 'tweets_neu', 'neg_avg', 'pos_avg', 'links_count', 'bots_count', 'open', 'high', 'low', 'close', 'btc_volume', 'curr_volume'
 bitcoin_filtered.csv: 					'id', 'username', 'id', 'timestamp', 'text', 'links', 'replies', 'retweets', 'favorites'
 Bitcoin_tweets_filtered.csv: 			'username', 'location', 'bio', 'user_created', 'followers', 'friends', 'favorites', 'verified', 'datetime', 'text', 'hashtags', 'source', 'retweet'
 BitcoinTweets_filtered.csv: 			'record_id', 'id', 'text', 'datetime', 'favorites', 'retweets'
