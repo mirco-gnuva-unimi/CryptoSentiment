@@ -135,14 +135,16 @@ with tqdm(total=rows_count, desc='Reading rows') as bar:
 			continue
 		text = text.strip()
 		text_handler = Text(rowid, text)
-		if text_handler.is_useful():
-			text_handlers.append(text_handler)
-			batch.extend(text_handler.sentences)
-		else:
+		if not text_handler.is_useful():
 			with sqlite3.connect(f'{root}{db}', check_same_thread=False) as write_conn:
 				query = f'UPDATE {table} set label = "NEUTRAL", conf = 0 WHERE ROWID = {text_handler.rowid};'
 				write_conn.execute(query)
 				write_conn.commit()
+				continue
+
+		text_handlers.append(text_handler)
+		batch.extend(text_handler.sentences)
+
 		if len(batch) > BATCH_SIZE:
 			try:
 				bar.desc = 'Predicting'
