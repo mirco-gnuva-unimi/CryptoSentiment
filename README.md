@@ -18,3 +18,4 @@ bitcoin-twitter: https://www.kaggle.com/gwhittington/bitcointwitter?select=bitco
 bitcoin: https://www.kaggle.com/liurui/tweets-about-bitcoin?select=bitcoin.csv
 twits_BTC: https://www.kaggle.com/mohammedlaidtadjine/9000-tweets-about-bitcoin-910-dec-20220
 BTC_tweets_daily_example: https://data.world/mercal/btc-tweets-sentiment
+country-and-continent-codes-list-csv_csv.csv: https://datahub.io/JohnSnowLabs/country-and-continent-codes-list#resource-country-and-continent-codes-list-csv
