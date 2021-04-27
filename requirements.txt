@@ -9,3 +9,7 @@ spacy~=3.0.5
 textblob~=0.15.3
 altair~=4.1.0
 vega~=3.4.0
+segtok~=1.5.10
+flair~=0.8.0.post1
+pycountry~=20.7.3
+python-dateutil~=2.8.1
