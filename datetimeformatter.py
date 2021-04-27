@@ -8,12 +8,10 @@ import re
 
 
 def get_rows_count_and_pages(db_path: str, table: str, bar: tqdm):
-	global pages
 	with sqlite3.connect(db_path) as conn:
 		query = f'SELECT COUNT(ROWID) FROM {table} WHERE formatted = 0;'
 		cursor = conn.execute(query)
 		rows_count = cursor.fetchone()[0]
-		pages = math.ceil(rows_count/500)
 	bar.total = rows_count
 	bar.refresh()
 
@@ -67,56 +65,59 @@ def correct_format(date_string: str) -> bool:
 	return re.match('[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}', date_string) is not None
 
 
-db_path = '/home/wasp97/Desktop/merging_db.sqlite'
-table = 'tweet'
+def empty_queue(queue: list, connection: sqlite3.Connection) -> list:
+	set_bar_desc('executing')
+	query = f'UPDATE {table} SET datetime = ?, date = ?, formatted = 1 WHERE ROWID = ?;'
+	params = [(datetime_obj, datetime_obj.date(), rowid) for datetime_obj, rowid in queue]
+	connection.executemany(query, params)
+	'''
+	[connection.execute(
+		f'UPDATE {table} SET datetime = "{datetime_obj}", date = "{datetime_obj.date()}", formatted = 1 WHERE ROWID = {rowid};')
+	 for datetime_obj, rowid in queue]
+	'''
+	set_bar_desc('committing')
+	connection.commit()
+	set_bar_desc('reading')
+	return []
+
+
+def set_bar_desc(desc: str):
+	global bar
+	bar.desc = f'{db_path.split("/")[-1]} | {table} | {desc}'
+	bar.refresh()
+
+
 custom_patterns = ['%I:%M %p - %d %b %Y', '%Y-%m-%d']
 
-bar = tqdm()
-pages = 99999999999
-Thread(target=get_rows_count_and_pages, args=(db_path, table, bar)).start()
+if __name__ == '__main__':
+	db_path = '/home/wasp97/Desktop/telegram.sqlite'
+	table = 'groups_messages'
+	queue_max_size = 100000
 
-executed_queries = 0
-offset = 0
-limit = 500
-pages_read = 0
-queue = []
+	bar = tqdm()
+	Thread(target=get_rows_count_and_pages, args=(db_path, table, bar)).start()
 
-with sqlite3.connect(db_path) as read_conn, sqlite3.connect(db_path) as write_conn:
-	#while pages_read <= pages:
-	query = f'SELECT ROWID, datetime FROM {table} WHERE formatted = 0;'
-	cursor = read_conn.execute(query)
+	queue = []
 
-	bar.desc = 'Reading'
-	bar.refresh()
+	with sqlite3.connect(db_path) as read_conn, sqlite3.connect(db_path) as write_conn:
+		query = f'SELECT ROWID, datetime FROM {table} WHERE formatted = 0;'
+		cursor = read_conn.execute(query)
 
-	for row in cursor:
-		datetime_str: str
-		rowid, datetime_str = list(row)
-		#print(rowid, datetime_str)
-		datetime_str = datetime_str.replace('"', '')
-		datetime_obj = get_datetime(datetime_str)
+		set_bar_desc('reading')
 
-		if datetime_obj is None:
-			print(rowid, f'"{datetime_str}"')
-			exit(1)
+		for row in cursor:
+			datetime_str: str
+			rowid, datetime_str = list(row)
+			datetime_str = datetime_str.replace('"', '')
+			datetime_obj = get_datetime(datetime_str)
 
-		queue.append((datetime_obj, rowid))
+			if datetime_obj is None:
+				print(rowid, f'"{datetime_str}"')
+				exit(1)
 
-		if len(queue) >= 100000:
-			bar.desc = 'Committing'
-			bar.refresh()
-			#print('Committing')
-			[write_conn.execute(f'UPDATE {table} SET datetime = "{datetime_obj}", date = "{datetime_obj.date()}", formatted = 1 WHERE ROWID = {rowid};')
-			 for datetime_obj, rowid in queue]
-			write_conn.commit()
-			queue = []
-			bar.desc = 'Reading'
-			bar.refresh()
-		bar.update()
-	bar.desc = 'Committing'
-	bar.refresh()
-	[write_conn.execute(f'UPDATE {table} SET datetime = "{datetime_obj}", date = "{datetime_obj.date()}", formatted = 1 WHERE ROWID = {rowid};')
-	 for datetime_obj, rowid in queue]
-	write_conn.commit()
-	bar.desc = 'Completed'
-	bar.refresh()
+			queue.append((datetime_obj, rowid))
+
+			if len(queue) >= queue_max_size:
+				queue = empty_queue(queue, write_conn)
+			bar.update()
+		empty_queue(queue, write_conn)
