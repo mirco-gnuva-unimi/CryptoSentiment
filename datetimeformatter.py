@@ -67,8 +67,8 @@ def correct_format(date_string: str) -> bool:
 	return re.match('[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}', date_string) is not None
 
 
-db_path = '/mnt/hgfs/VMs_Shared/datasets/filtered/bitcoin_reddit_all.sqlite'
-table = 'post'
+db_path = '/home/wasp97/Desktop/news.sqlite'
+table = 'news'
 custom_patterns = ['%I:%M %p - %d %b %Y', '%Y-%m-%d']
 
 bar = tqdm()
@@ -99,7 +99,7 @@ with sqlite3.connect(db_path) as read_conn, sqlite3.connect(db_path) as write_co
 		datetime_obj = get_datetime(datetime_str)
 
 		if datetime_obj is None:
-			print(rowid, f'"datetime_str"')
+			print(rowid, f'"{datetime_str}"')
 			exit(1)
 
 		queue.append((datetime_obj, rowid))
