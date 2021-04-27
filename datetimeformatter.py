@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, date
 from dateutil.parser import parse
 from tqdm import tqdm
 import math
@@ -67,8 +67,8 @@ def correct_format(date_string: str) -> bool:
 	return re.match('[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}', date_string) is not None
 
 
-db_path = '/home/wasp97/Desktop/news.sqlite'
-table = 'news'
+db_path = '/home/wasp97/Desktop/merging_db.sqlite'
+table = 'tweet'
 custom_patterns = ['%I:%M %p - %d %b %Y', '%Y-%m-%d']
 
 bar = tqdm()
@@ -92,10 +92,8 @@ with sqlite3.connect(db_path) as read_conn, sqlite3.connect(db_path) as write_co
 	for row in cursor:
 		datetime_str: str
 		rowid, datetime_str = list(row)
+		#print(rowid, datetime_str)
 		datetime_str = datetime_str.replace('"', '')
-		if correct_format(datetime_str):
-			bar.update()
-			continue
 		datetime_obj = get_datetime(datetime_str)
 
 		if datetime_obj is None:
@@ -108,15 +106,17 @@ with sqlite3.connect(db_path) as read_conn, sqlite3.connect(db_path) as write_co
 			bar.desc = 'Committing'
 			bar.refresh()
 			#print('Committing')
-			[write_conn.execute(f'UPDATE {table} SET datetime = "{datetime_obj}", formatted = 1 WHERE ROWID = {rowid};')
+			[write_conn.execute(f'UPDATE {table} SET datetime = "{datetime_obj}", date = "{datetime_obj.date()}", formatted = 1 WHERE ROWID = {rowid};')
 			 for datetime_obj, rowid in queue]
 			write_conn.commit()
-
 			queue = []
 			bar.desc = 'Reading'
 			bar.refresh()
 		bar.update()
-
-with sqlite3.connect(db_path) as conn:
-	conn.execute('PRAGMA wal_checkpoint;')
-	conn.commit()
+	bar.desc = 'Committing'
+	bar.refresh()
+	[write_conn.execute(f'UPDATE {table} SET datetime = "{datetime_obj}", date = "{datetime_obj.date()}", formatted = 1 WHERE ROWID = {rowid};')
+	 for datetime_obj, rowid in queue]
+	write_conn.commit()
+	bar.desc = 'Completed'
+	bar.refresh()
