@@ -1,5 +1,14 @@
 # CryptoSentiment
-place holder file
+
+## Description
+This project aims to analyze media contents (like news text, tweets, reddit post and telegram messages) to measure correlation with Bitcoin price over time.
+At the moment the project is not ready to be used with real-time data, therefore it can't be integrated with a bot application. 
+
+## Future of the project
+In the free-time, the project will be updated to support real-time analysis; probabily will be integrated in a bot application.
+
+## Collaboration
+At the moment the project is closed to direct collaborations, obviously forks are welcommed.
 
 TEMP SECTION
 sources:
