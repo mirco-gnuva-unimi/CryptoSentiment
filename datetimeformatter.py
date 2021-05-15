@@ -70,11 +70,6 @@ def empty_queue(queue: list, connection: sqlite3.Connection) -> list:
 	query = f'UPDATE {table} SET datetime = ?, date = ?, formatted = 1 WHERE ROWID = ?;'
 	params = [(datetime_obj, datetime_obj.date(), rowid) for datetime_obj, rowid in queue]
 	connection.executemany(query, params)
-	'''
-	[connection.execute(
-		f'UPDATE {table} SET datetime = "{datetime_obj}", date = "{datetime_obj.date()}", formatted = 1 WHERE ROWID = {rowid};')
-	 for datetime_obj, rowid in queue]
-	'''
 	set_bar_desc('committing')
 	connection.commit()
 	set_bar_desc('reading')
@@ -90,8 +85,8 @@ def set_bar_desc(desc: str):
 custom_patterns = ['%I:%M %p - %d %b %Y', '%Y-%m-%d']
 
 if __name__ == '__main__':
-	db_path = '/home/wasp97/Desktop/telegram.sqlite'
-	table = 'groups_messages'
+	db_path = '/mnt/hgfs/VMs_Shared/datasets/filtered/market.sqlite'
+	table = 'quotation'
 	queue_max_size = 100000
 
 	bar = tqdm()
