@@ -1,7 +1,0 @@
-bitcoin
-bitcoins
-btc
-cryptocurrencies
-crypto
-coinbase
-bitstamp
