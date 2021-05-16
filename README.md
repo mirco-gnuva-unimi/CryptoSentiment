@@ -12,7 +12,7 @@ For real-time compatibility, A
 At the moment the project is closed to direct collaborations, obviously forks are welcommed.
 
 ## Flair
-This project uses Flair framework for text classification; as requested we cite two papers:
+This project uses [Flair](https://github.com/flairNLP/flair) framework for text classification; as requested we cite two papers:
 
     akbik2018coling,
     title={Contextual String Embeddings for Sequence Labeling},
