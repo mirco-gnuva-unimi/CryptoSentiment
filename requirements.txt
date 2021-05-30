@@ -16,3 +16,4 @@ segtok~=1.5.10
 flair~=0.8.0.post1
 pycountry~=20.7.3
 python-dateutil~=2.8.1
+ipywidgets
